@@ -64,6 +64,16 @@ The Prisma client is generated into `server/generated/prisma` (outside
 `tsx`; the API itself remains JavaScript. Regenerate the client after changing
 the Prisma schema.
 
+## Server structure
+
+- `src/server.js` connects to PostgreSQL, starts the HTTP server, and handles
+  graceful shutdown.
+- `src/app.js` configures Express middleware and mounts routes.
+- `src/config/env.js` loads and validates environment variables.
+- `src/db/prisma.js` creates the shared Prisma client and PostgreSQL pool.
+- `src/routes/health.routes.js` implements `GET /health`.
+- `src/middleware/` contains the 404 and error handlers.
+
 The API listens on port `3000` by default (configurable with `PORT`). `GET
 /health` checks the PostgreSQL connection and returns `{"status":"ok"}` when
 the database is reachable.

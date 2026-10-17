@@ -1,0 +1,84 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String     @db.Text
+  email     String     @unique @db.Text
+  role      String     @default("user") @db.Text
+  password  String     @db.Text
+  createdAt DateTime?  @default(now()) @map("created_at") @db.Timestamptz(6)
+  resources Resource[] @relation("ResourceUploader")
+  ratings   Rating[]
+
+  @@map("users")
+}
+
+model Course {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title      String     @db.Text
+  code       String     @unique @db.Text
+  department String     @db.Text
+  createdAt  DateTime?  @default(now()) @map("created_at") @db.Timestamptz(6)
+  resources  Resource[]
+
+  @@map("courses")
+}
+
+model Resource {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String        @db.Text
+  description  String?       @db.Text
+  courseId     String        @map("course_id") @db.Uuid
+  uploaderId   String?       @map("uploader_id") @db.Uuid
+  fileUrl      String        @map("file_url") @db.Text
+  resourceType String        @map("resource_type") @db.Text
+  avgRating    Decimal       @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
+  ratingCount  Int           @default(0) @map("rating_count")
+  createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  uploader     User?         @relation("ResourceUploader", fields: [uploaderId], references: [id], onDelete: SetNull)
+  ratings      Rating[]
+  tags         ResourceTag[]
+
+  @@map("resources")
+}
+
+model Rating {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resourceId String    @map("resource_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  score      Int       @db.SmallInt
+  review     String?   @db.Text
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  resource   Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, userId])
+  @@map("ratings")
+}
+
+model Tag {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String        @unique @db.Text
+  resourceTags ResourceTag[]
+
+  @@map("tags")
+}
+
+model ResourceTag {
+  resourceId String   @map("resource_id") @db.Uuid
+  tagId      String   @map("tag_id") @db.Uuid
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, tagId])
+  @@map("resource_tags")
+}

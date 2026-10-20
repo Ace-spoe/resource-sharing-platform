@@ -10,8 +10,7 @@ const app = express();
 
 app.disable("x-powered-by");
 app.use(cors({
-  origin: clientUrl ,
-  credentials: true
+  origin: clientUrl 
 }))
 app.use(express.json({ limit: "1mb" }));
 app.use("/health", healthRoutes);

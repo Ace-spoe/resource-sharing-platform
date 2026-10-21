@@ -17,9 +17,7 @@ const CoursesPage = () => {
         setError(null);
 
         const res = await fetch(`${VITE_API_URL}/api/courses`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: "GET"
         });
 
         if (!res.ok) {
@@ -63,5 +61,5 @@ const CoursesPage = () => {
     </div>
   );
 };
-
+ 
 export default CoursesPage;

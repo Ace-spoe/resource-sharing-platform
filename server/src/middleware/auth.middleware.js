@@ -10,12 +10,13 @@ const authMiddleware = (req, res, next) => {
   try {
     req.user = jwt.verify(token, jwtSecret, { algorithms: ["HS256"] });
     next();
+
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 
-const adminMiddleware = (req , res, next ) => {
+const adminMiddleware = (req , res, next) => {
     try {
         if(!req.user) return res.status(401).json({error : 'Not authenticated '})
         const { role } = req.user
@@ -31,4 +32,5 @@ const adminMiddleware = (req , res, next ) => {
     }
     
 }
+
 module.exports = { authMiddleware , adminMiddleware};

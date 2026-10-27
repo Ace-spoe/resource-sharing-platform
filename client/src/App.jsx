@@ -5,6 +5,7 @@ function App() {
 
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-16 text-slate-900">
       <CoursesPage />
+      
     </main>
   )
 }

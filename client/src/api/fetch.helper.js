@@ -13,14 +13,18 @@ export async function apiClient(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}/api${path}`, {
     ...options,
     headers: { ...headers, ...options.headers },
   });
 
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    throw new Error(payload.error ?? `Request failed (${res.status})`);
+    const err = new Error(
+      payload.error ?? payload.message ?? `Request failed (${res.status})`
+    );
+    err.status = res.status;
+    throw err;
   }
 
   return await res.json();

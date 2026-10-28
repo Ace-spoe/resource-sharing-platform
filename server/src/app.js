@@ -12,6 +12,7 @@ const userRouter = require("./routes/user.routes");
 const app = express();
 
 app.disable("x-powered-by");
+console.log("CORS client URL is:", clientUrl);
 app.use(cors({
   origin: clientUrl,
   credentials : true 

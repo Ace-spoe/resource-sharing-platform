@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
 CREATE TABLE "users" (
-        LL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'user',

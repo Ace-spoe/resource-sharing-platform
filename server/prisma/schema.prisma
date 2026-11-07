@@ -32,6 +32,13 @@ model Course {
   @@map("courses")
 }
 
+enum ResourceType {
+  past_exam
+  notes
+  slides
+  other
+}
+
 model Resource {
   id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title        String        @db.Text
@@ -39,7 +46,7 @@ model Resource {
   courseId     String        @map("course_id") @db.Uuid
   uploaderId   String?       @map("uploader_id") @db.Uuid
   fileUrl      String        @map("file_url") @db.Text
-  resourceType String        @map("resource_type") @db.Text
+  resourceType ResourceType  @map("resource_type")
   avgRating    Decimal       @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
   ratingCount  Int           @default(0) @map("rating_count")
   createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)

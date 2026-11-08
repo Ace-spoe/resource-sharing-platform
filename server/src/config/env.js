@@ -5,6 +5,9 @@ require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 const databaseUrl = process.env.DATABASE_URL;
 const clientUrl = process.env.CLIENT_URL
 const jwtSecret = process.env.JWT_SECRET
+const cloudNname = process.env.CLOUDINARY_CLOUD_NAME
+const apiKey = process.env.CLOUDINARY_API_KEY
+const apiSecret = process.env.CLOUDINARY_API_SECRET
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required. Set it in server/.env.");
@@ -14,10 +17,17 @@ if(!clientUrl){
   throw new Error("Set the client URL in server/.env")
 }
 
+if(!jwtSecret){
+  throw new Error("Set the JWT in server/.env")
+}
+if(!cloudNname || !apiKey || !apiSecret){
+  throw new Error("Set the clodinary keys properly in server/.env")
+}
+
 const port = Number(process.env.PORT || 3000);
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error("PORT must be an integer between 1 and 65535.");
 }
 
-module.exports = { databaseUrl, port , clientUrl , jwtSecret};
+module.exports = { databaseUrl, port , clientUrl , jwtSecret ,cloudNname , apiKey , apiSecret };

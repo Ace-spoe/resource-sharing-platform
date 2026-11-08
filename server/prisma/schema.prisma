@@ -45,6 +45,7 @@ model Resource {
   description  String?       @db.Text
   courseId     String        @map("course_id") @db.Uuid
   uploaderId   String?       @map("uploader_id") @db.Uuid
+  publicId     String?       @map("public_id")
   fileUrl      String        @map("file_url") @db.Text
   resourceType ResourceType  @map("resource_type")
   avgRating    Decimal       @default(0.00) @map("avg_rating") @db.Decimal(3, 2)

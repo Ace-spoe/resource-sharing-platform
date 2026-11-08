@@ -44,8 +44,18 @@ function errorHandler(error, _request, response, _next) {
   if (error.name === 'PrismaClientValidationError') {
     return response.status(400).json({ success: false, message: 'Invalid input' })
   }
+  // 4. Custom Error
+  if (error.status) {
+    return response.status(error.status).json({
+      success: false,
+      message: error.message,
+    });
+  }
 
-  // 4. Anything unexpected
+
+  // 5. Anything unexpected
+
+  
   console.error(error)
   return response.status(500).json({ success: false, message: 'Internal server error' })
 }

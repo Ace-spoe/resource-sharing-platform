@@ -8,6 +8,7 @@ const courseRoutes = require("./routes/course.routes");
 const authRoutes = require("./routes/auth.routes");
 const userRouter = require("./routes/user.routes");
 const resourceRouter = require("./routes/resource.routes");
+const tagRoutes = require('./routes/tag.routes')
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRouter)
 app.use("/api/resources" , resourceRouter)
+app.use('/api/tags', tagRoutes)
 app.use(notFound);
 app.use(errorHandler);
 

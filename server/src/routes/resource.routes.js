@@ -1,5 +1,6 @@
 const router = require('express').Router()
 const { uploadToCloudinary , cloudinary } = require('../config/cloudinaryUtil')
+const { parseTags } = require('../utils/parseTags')
 const { prisma } = require('../db/prisma')
 const { authMiddleware } = require('../middleware/auth.middleware')
 const upload = require('../middleware/upload')
@@ -7,8 +8,15 @@ const upload = require('../middleware/upload')
 // Internal fields the client should never receive.
 // Used as `omit: HIDDEN` on every query that returns a resource.
 const HIDDEN = { publicId: true }
+// Query fragment: also fetch each join row's tag name
+const WITH_TAGS = {
+  tags: { select: { tag: { select: { name: true } } } },
+}
 
-// Deletes a file from Cloudinary and NEVER throws.
+// Turn [{ tag: { name: 'midterm' } }, ...] into ['midterm', ...]
+function formatResource(resource) {
+  return { ...resource, tags: resource.tags.map((rt) => rt.tag.name) }
+}// Deletes a file from Cloudinary and NEVER throws.
 // A failed cleanup is logged, not allowed to break the request.
 async function destroyFile(publicId) {
   if (!publicId) return // rows created before the publicId column have none
@@ -43,6 +51,16 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res, next) =
     if (description != null && typeof description !== 'string') {
       return res.status(400).json({ success: false, message: 'description must be a string' })
     }
+
+    const tagNames = parseTags(req.body.tags)
+
+    if (tagNames.length > 5) {
+      return res.status(400).json({ success: false, message: 'A resource can have at most 5 tags' })
+    }
+    if (tagNames.some((name) => name.length > 30)) {
+      return res.status(400).json({ success: false, message: 'Each tag must be 30 characters or fewer' })
+    }
+
     if (!req.file || !req.file.buffer || !req.file.originalname) {
       return res.status(400).json({ success: false, message: 'Please attach a valid file' })
     }
@@ -58,8 +76,19 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res, next) =
         uploaderId: req.user.id, // from the token, never from the body
         fileUrl: uploaded.secure_url,
         publicId: uploaded.public_id,
+        tags: {
+            create: tagNames.map((name) => ({
+              tag: {
+                connectOrCreate: {
+                  where: { name },   // does a tag with this name exist?
+                  create: { name },  // if not, make it
+                },
+              },
+            })),
+          },
       },
       omit: HIDDEN,
+      include : formatResource(newResource)
     })
 
     return res.status(201).json({
@@ -88,6 +117,7 @@ router.get('/', async (req, res, next) => {
     const resources = await prisma.resource.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+       include: WITH_TAGS,
       omit: HIDDEN,
     })
 
@@ -95,7 +125,7 @@ router.get('/', async (req, res, next) => {
     return res.json({
       success: true,
       message: resources.length ? 'Resources retrieved successfully!' : 'No resources found',
-      data: resources,
+      data: resources.map(formatResource),
     })
   } catch (error) {
     next(error)
@@ -114,6 +144,7 @@ router.get('/:id', async (req, res, next) => {
         // `select` inside `include` limits which fields of the relation come back
         uploader: { select: { id: true, name: true } }, // uploader can be null (SetNull)
         course: { select: { title: true, code: true } },
+         ...WITH_TAGS
       },
       omit: HIDDEN,
     })
@@ -122,7 +153,7 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Resource not found' })
     }
 
-    return res.json({ success: true, message: 'Resource found', data: resource })
+    return res.json({ success: true, message: 'Resource found', data: formatResource(resource) })
   } catch (error) {
     next(error) // a malformed id lands here; the error handler maps it to 400
   }

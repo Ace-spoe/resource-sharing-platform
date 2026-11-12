@@ -27,7 +27,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/users", userRouter)
 app.use("/api/resources" , resourceRouter)
 app.use("/api/tags", tagRoutes)
-app.use("/api/resources/:id/ratings" ,ratingRoutes )
+app.use("/api/resources/:id/ratings" , ratingRoutes)
 app.use(notFound);
 app.use(errorHandler);
 

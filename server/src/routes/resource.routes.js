@@ -107,25 +107,85 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res, next) =
 // ---------- LIST ----------
 router.get('/', async (req, res, next) => {
   try {
-    const { course, type } = req.query
+    const {
+      course,
+      type,
+      tag,
+      search,
+      sort = 'newest',
+      page = '1',
+      limit = '10',
+    } = req.query
+
+    // Parse and clamp pagination numbers safely
+    const pageNum = Math.max(1, parseInt(page, 10) || 1)
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10)) // cap at 50 per page
+    const skip = (pageNum - 1) * limitNum
+
+    // Build the dynamic WHERE filter
     const where = {}
 
     // query values can be arrays (?course=a&course=b), so accept only non-empty strings
     if (typeof course === 'string' && course) where.courseId = course
     if (typeof type === 'string' && type) where.resourceType = type
 
-    const resources = await prisma.resource.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-       include: WITH_TAGS,
-      omit: HIDDEN,
-    })
+    // CHANGED: check tag.trim() so a whitespace-only tag is ignored,
+    // and dropped the `equals` wrapper (a plain value means equals)
+    if (typeof tag === 'string' && tag.trim()) {
+      where.tags = { some: { tag: { name: tag.trim().toLowerCase() } } }
+    }
 
-    // a list is never a 404: empty result is still 200 with []
+    // Text search across title and description
+    if (typeof search === 'string' && search.trim()) {
+      const term = search.trim()
+      where.OR = [
+        { title: { contains: term, mode: 'insensitive' } },
+        { description: { contains: term, mode: 'insensitive' } },
+      ]
+    }
+
+    // CHANGED: every sort ends with { id: 'asc' } as a tie-breaker, so rows with
+    // equal values keep a fixed order and pages never repeat or skip a row
+    const sortMap = {
+      newest: [{ createdAt: 'desc' }, { id: 'asc' }],
+      oldest: [{ createdAt: 'asc' }, { id: 'asc' }],
+      top_rated: [{ avgRating: 'desc' }, { ratingCount: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+      popular: [{ ratingCount: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+    }
+    // CHANGED: Object.hasOwn only accepts keys we defined, so ?sort=constructor
+    // falls back to newest instead of passing junk to Prisma
+    const orderBy = Object.hasOwn(sortMap, sort) ? sortMap[sort] : sortMap.newest
+
+    // Fetch the page and the total count in parallel, with the same `where`
+    const [resources, total] = await Promise.all([
+      prisma.resource.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limitNum,
+        include: {
+          course: { select: { title: true, code: true } },
+          uploader: { select: { id: true, name: true } },
+          tags: { select: { tag: { select: { name: true } } } },
+        },
+        omit: HIDDEN,
+      }),
+      prisma.resource.count({ where }),
+    ])
+
+    // a list is never a 404: an empty result is still 200 with []
     return res.json({
       success: true,
       message: resources.length ? 'Resources retrieved successfully!' : 'No resources found',
       data: resources.map(formatResource),
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+        hasNextPage: pageNum * limitNum < total,
+        hasPrevPage: pageNum > 1,
+      },
     })
   } catch (error) {
     next(error)
@@ -192,6 +252,8 @@ router.delete('/:id', authMiddleware, async (req, res, next) => {
     next(error) // P2025 (already deleted by a concurrent request) -> 404 in the handler
   }
 })
+
+
 
 
 module.exports = router
